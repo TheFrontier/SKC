@@ -19,12 +19,12 @@ repositories {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "org.jetbrains.kotlin:kotlin-reflect"
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compileOnly "org.jetbrains.kotlin:kotlin-reflect"
 
-    implementation 'org.spongepowered:spongeapi:7.1.0'
+    compileOnly 'org.spongepowered:spongeapi:7.1.0'
 
-    implementation 'com.github.TheFrontier:SKE:8618c9d738'
+    compileOnly 'com.github.TheFrontier:SKE:8618c9d738'
 }
 
 compileKotlin {
