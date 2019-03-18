@@ -36,23 +36,37 @@ object ParameterMappings {
 
     val PLAYER: ParameterMapping = matchOnType<Player> {
         when {
-            it.findAnnotation<OrSource>() != null -> GenericArguments::playerOrSource
-            else -> GenericArguments::player
+            it.findAnnotation<OrSource>() != null -> { key ->
+                GenericArguments.playerOrSource(key)
+            }
+            else -> { key ->
+                GenericArguments.player(key)
+            }
         }
     }
 
     val USER: ParameterMapping = matchOnType<User> {
         when {
-            it.findAnnotation<OrSource>() != null -> GenericArguments::userOrSource
-            else -> GenericArguments::user
+            it.findAnnotation<OrSource>() != null -> { key ->
+                GenericArguments.userOrSource(key)
+            }
+            else -> { key ->
+                GenericArguments.user(key)
+            }
         }
     }
 
     val STRING: ParameterMapping = matchOnType<String> {
         when (it.findAnnotation<RemainingJoined>()?.raw) {
-            true -> GenericArguments::remainingRawJoinedStrings
-            false -> GenericArguments::remainingJoinedStrings
-            else -> GenericArguments::string
+            true -> { key ->
+                GenericArguments.remainingRawJoinedStrings(key)
+            }
+            false -> { key ->
+                GenericArguments.remainingJoinedStrings(key)
+            }
+            else -> { key ->
+                GenericArguments.string(key)
+            }
         }
     }
 
