@@ -15,10 +15,6 @@ class SKCCommand(
 
     inline fun <reified T : Any> register(plugin: Any) = register(plugin, T::class)
 
-    fun register() {
-
-    }
-
     fun register(plugin: Any, clazz: KClass<*>) {
         val command = requireNotNull(clazz.findAnnotation<Command>()) {
             "${clazz.simpleName} must be annotated with @Command"
