@@ -26,8 +26,6 @@ fun KFunction<*>.newSpec(mappings: List<ParameterMapping>): CommandSpec.Builder 
 }
 
 fun KFunction<*>.checkCommand() {
-    require(this.isAccessible) { "Function must be accessible." }
-
     require(this.returnType.isSubtypeOf<CommandResult>() || this.returnType.isSubtypeOf<Unit>()) {
         "Unsupported return type (${this.returnType}), must be CommandResult or Unit"
     }
@@ -38,6 +36,8 @@ fun KFunction<*>.checkCommand() {
     require(!this.isInline) { "Unsupported function modifier: inline" }
     require(!this.isOperator) { "Unsupported function modifier: operator" }
     require(!this.isSuspend) { "Unsupported function modifier: suspend" }
+
+    this.isAccessible = true
 }
 
 fun KFunction<*>.mapParameters(mappings: List<ParameterMapping>): CommandElement {
