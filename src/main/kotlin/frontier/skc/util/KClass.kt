@@ -8,6 +8,12 @@ import org.spongepowered.api.command.spec.CommandSpec
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.functions
+import kotlin.reflect.full.isSubclassOf
+import kotlin.reflect.full.isSuperclassOf
+
+inline fun <reified T : Any> KClass<*>.isSubclassOf() = this.isSubclassOf(T::class)
+
+inline fun <reified T : Any> KClass<*>.isSuperclassOf() = this.isSuperclassOf(T::class)
 
 fun KClass<*>.newSpec(mappings: List<ParameterMapping>, injector: Injector? = null): CommandSpec.Builder {
     val spec = CommandSpec.builder()

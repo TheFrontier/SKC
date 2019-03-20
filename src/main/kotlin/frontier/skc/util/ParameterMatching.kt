@@ -15,6 +15,8 @@ fun List<ParameterMapping>.match(parameter: KParameter): CommandElement {
 
     for (mapper in this) {
         element = mapper(parameter)?.invoke(!parameter.effectiveName)
+
+        if (element != null) break
     }
 
     var result = requireNotNull(element) {

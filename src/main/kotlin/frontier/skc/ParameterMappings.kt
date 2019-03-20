@@ -5,10 +5,7 @@ import frontier.skc.annotation.OrSource
 import frontier.skc.annotation.RemainingJoined
 import frontier.skc.annotation.Serialized
 import frontier.skc.annotation.Source
-import frontier.skc.util.CommandSourceCommandElement
-import frontier.skc.util.directlyMatchOnType
-import frontier.skc.util.isSubtypeOf
-import frontier.skc.util.matchOnType
+import frontier.skc.util.*
 import frontier.ske.gameRegistry
 import frontier.ske.getType
 import org.spongepowered.api.CatalogType
@@ -30,7 +27,6 @@ import java.math.BigInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSubclassOf
 
 object ParameterMappings {
 
@@ -122,7 +118,7 @@ object ParameterMappings {
     fun commandSource(parameter: KParameter): ((Text) -> CommandElement)? {
         val type = parameter.type.classifier as? KClass<*> ?: return null
 
-        return if (parameter.findAnnotation<Source>() != null && type.isSubclassOf(CommandSource::class)) {
+        return if (type.isSubclassOf<CommandSource>() && parameter.findAnnotation<Source>() != null) {
             { key -> CommandSourceCommandElement(key, type as KClass<out CommandSource>) }
         } else {
             null
