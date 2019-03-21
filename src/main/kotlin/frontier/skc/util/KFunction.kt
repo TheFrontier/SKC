@@ -3,11 +3,14 @@ package frontier.skc.util
 import frontier.skc.ParameterMapping
 import frontier.skc.annotation.Flag
 import frontier.skc.annotation.Permission
+import frontier.ske.text.not
+import org.spongepowered.api.command.CommandException
 import org.spongepowered.api.command.CommandResult
 import org.spongepowered.api.command.args.CommandElement
 import org.spongepowered.api.command.args.GenericArguments
 import org.spongepowered.api.command.spec.CommandExecutor
 import org.spongepowered.api.command.spec.CommandSpec
+import java.lang.reflect.InvocationTargetException
 import java.util.*
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.findAnnotation
@@ -71,11 +74,21 @@ fun KFunction<*>.mapParameters(mappings: List<ParameterMapping>): CommandElement
 }
 
 fun KFunction<*>.createExecutor(): CommandExecutor = CommandExecutor { _, ctx ->
-    val result = this.callBy(this.parameters.buildCallingArguments(ctx))
+    try {
+        val result = this.callBy(this.parameters.buildCallingArguments(ctx))
 
-    if (result is CommandResult) {
-        result
-    } else {
-        CommandResult.success()
+        if (result is CommandResult) {
+            result
+        } else {
+            CommandResult.success()
+        }
+    } catch (e: InvocationTargetException) {
+        val cause = e.cause
+
+        when (cause) {
+            is CommandException -> throw cause
+            null -> throw CommandException(!"An error occurred while executing that command.", e)
+            else -> throw CommandException(!"An error occurred while executing that command.", cause)
+        }
     }
 }

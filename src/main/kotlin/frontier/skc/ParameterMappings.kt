@@ -115,6 +115,20 @@ object ParameterMappings {
     }
 
     @Suppress("UNCHECKED_CAST")
+    val ENUM: ParameterMapping = {
+        when (it.type.isSubtypeOf<Enum<*>>()) {
+            true -> {
+                val clazz = it.type.classifier as KClass<out Enum<*>>
+
+                { key ->
+                    KEnumElement(key, clazz)
+                }
+            }
+            else -> null
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
     fun commandSource(parameter: KParameter): ((Text) -> CommandElement)? {
         val type = parameter.type.classifier as? KClass<*> ?: return null
 
@@ -142,6 +156,7 @@ object ParameterMappings {
         DIMENSION,
         PLUGIN,
         TEXT,
-        CATALOG_TYPE
+        CATALOG_TYPE,
+        ENUM
     )
 }
