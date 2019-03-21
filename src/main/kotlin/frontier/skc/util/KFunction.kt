@@ -87,8 +87,14 @@ fun KFunction<*>.createExecutor(): CommandExecutor = CommandExecutor { _, ctx ->
 
         when (cause) {
             is CommandException -> throw cause
-            null -> throw CommandException(!"An error occurred while executing that command.", e)
-            else -> throw CommandException(!"An error occurred while executing that command.", cause)
+            null -> {
+                e.printStackTrace()
+                throw CommandException(!"An error occurred while executing that command.", e)
+            }
+            else -> {
+                e.printStackTrace()
+                throw CommandException(!"An error occurred while executing that command.", cause)
+            }
         }
     }
 }
