@@ -19,15 +19,11 @@ import org.spongepowered.api.text.Text
 import org.spongepowered.api.text.serializer.TextSerializer
 import org.spongepowered.api.text.serializer.TextSerializers
 import org.spongepowered.api.world.DimensionType
-import org.spongepowered.api.world.Location
-import org.spongepowered.api.world.World
 import org.spongepowered.api.world.storage.WorldProperties
 import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
-import kotlin.reflect.KTypeProjection
-import kotlin.reflect.full.createType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubtypeOf
 
@@ -81,7 +77,14 @@ object ParameterMappings {
 
     val BIGDECIMAL: ParameterMapping = directlyMatchOnType<BigDecimal>(GenericArguments::bigDecimal)
 
-    val LOCATION: ParameterMapping = directlyMatchOnType<Location<World>>(GenericArguments::location)
+    val LOCATION: ParameterMapping = { parameter ->
+        when (parameter.type.isSubtypeOf(Location_World)) {
+            true -> { key ->
+                GenericArguments.location(key)
+            }
+            else -> null
+        }
+    }
 
     val VECTOR3D: ParameterMapping = directlyMatchOnType<Vector3d>(GenericArguments::vector3d)
 
@@ -91,12 +94,12 @@ object ParameterMappings {
 
     val PLUGIN: ParameterMapping = directlyMatchOnType<PluginContainer>(GenericArguments::plugin)
 
-    val TEXT: ParameterMapping = matchOnType<Text> {
-        val serializer = it.findAnnotation<Serialized>()?.let { serialized ->
+    val TEXT: ParameterMapping = matchOnType<Text> { parameter ->
+        val serializer = parameter.findAnnotation<Serialized>()?.let { serialized ->
             gameRegistry.getType<TextSerializer>(serialized.id)
         } ?: TextSerializers.FORMATTING_CODE
 
-        val allRemaining = it.findAnnotation<RemainingJoined>()
+        val allRemaining = parameter.findAnnotation<RemainingJoined>()
 
         return@matchOnType { key ->
             GenericArguments.text(key, serializer, allRemaining != null)
@@ -104,10 +107,10 @@ object ParameterMappings {
     }
 
     @Suppress("UNCHECKED_CAST")
-    val CATALOG_TYPE: ParameterMapping = {
-        when (it.type.isSubtypeOf<CatalogType>()) {
+    val CATALOG_TYPE: ParameterMapping = { parameter ->
+        when (parameter.type.isSubtypeOf<CatalogType>()) {
             true -> {
-                val clazz = (it.type.classifier as KClass<out CatalogType>).java
+                val clazz = (parameter.type.classifier as KClass<out CatalogType>).java
 
                 { key ->
                     GenericArguments.catalogedElement(key, clazz)
@@ -118,10 +121,10 @@ object ParameterMappings {
     }
 
     @Suppress("UNCHECKED_CAST")
-    val ENUM: ParameterMapping = {
-        when (it.type.isSubtypeOf(Enum::class.createType(listOf(KTypeProjection.STAR)))) {
+    val ENUM: ParameterMapping = { parameter ->
+        when (parameter.type.isSubtypeOf(Enum_STAR)) {
             true -> {
-                val clazz = it.type.classifier as KClass<out Enum<*>>
+                val clazz = parameter.type.classifier as KClass<out Enum<*>>
 
                 { key ->
                     KEnumElement(key, clazz)
