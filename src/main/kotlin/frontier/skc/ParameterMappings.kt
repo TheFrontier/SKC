@@ -26,7 +26,10 @@ import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
+import kotlin.reflect.KTypeProjection
+import kotlin.reflect.full.createType
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.isSubtypeOf
 
 object ParameterMappings {
 
@@ -116,7 +119,7 @@ object ParameterMappings {
 
     @Suppress("UNCHECKED_CAST")
     val ENUM: ParameterMapping = {
-        when (it.type.isSubtypeOf<Enum<*>>()) {
+        when (it.type.isSubtypeOf(Enum::class.createType(listOf(KTypeProjection.STAR)))) {
             true -> {
                 val clazz = it.type.classifier as KClass<out Enum<*>>
 
