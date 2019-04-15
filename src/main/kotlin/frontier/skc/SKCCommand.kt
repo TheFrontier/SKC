@@ -2,7 +2,6 @@ package frontier.skc
 
 import com.google.inject.Injector
 import frontier.skc.annotation.Command
-import frontier.skc.util.newSpec
 import frontier.ske.commandManager
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
