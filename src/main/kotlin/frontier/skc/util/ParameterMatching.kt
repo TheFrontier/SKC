@@ -10,33 +10,6 @@ import org.spongepowered.api.text.Text
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.findAnnotation
 
-fun List<ParameterMapping>.match(parameter: KParameter): CommandElement {
-    var element: CommandElement? = null
-
-    for (mapper in this) {
-        element = mapper(parameter)?.invoke(!parameter.effectiveName)
-
-        if (element != null) break
-    }
-
-    var result = requireNotNull(element) {
-        "Could not find a ParameterMapping that matches ${parameter.type}"
-    }
-
-    parameter.findAnnotation<Permission>()?.let {
-        result = GenericArguments.requiringPermission(result, it.value)
-    }
-
-    if (parameter.isOptional || parameter.type.isMarkedNullable) {
-        result = when {
-            parameter.findAnnotation<Weak>() != null -> GenericArguments.optionalWeak(result)
-            else -> GenericArguments.optional(result)
-        }
-    }
-
-    return result
-}
-
 inline fun <reified T> matchOnType(crossinline process: ParameterMapping): ParameterMapping =
     { parameter ->
         when (parameter.type.classifier) {
