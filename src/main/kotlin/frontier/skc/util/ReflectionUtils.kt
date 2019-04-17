@@ -1,12 +1,13 @@
 package frontier.skc.util
 
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
-import kotlin.reflect.full.createType
-import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.isSubtypeOf
-import kotlin.reflect.full.isSuperclassOf
+import kotlin.reflect.full.*
+
+inline fun <reified A : Annotation> KClass<*>.annotatedFunctions(): List<KFunction<*>> =
+    this.functions.filter { func -> func.annotations.any { it is A } }
 
 inline fun <reified T : Any> KClass<*>.isSubclassOf() = this.isSubclassOf(T::class)
 
@@ -21,4 +22,4 @@ inline fun <reified T : Any> KType.isSubtypeOf() =
 inline fun <reified T : Any> KType.isType() =
     this.classifier == T::class
 
-val KParameter.effectiveName: String get() = this.name ?: "arg${this.index}"
+val KParameter.displayName: String get() = this.name ?: "arg${this.index}"
