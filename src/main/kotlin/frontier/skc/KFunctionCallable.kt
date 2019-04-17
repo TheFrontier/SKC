@@ -1,11 +1,14 @@
 package frontier.skc
 
 import frontier.skc.annotation.Command
+import frontier.skc.annotation.Description
 import frontier.skc.annotation.Permission
 import frontier.skc.util.displayName
 import frontier.skc.value.AnnotatedValueParameter
 import frontier.ske.commandManager
+import frontier.ske.java.util.wrap
 import frontier.ske.text.text
+import frontier.ske.text.unaryPlus
 import org.spongepowered.api.command.CommandCallable
 import org.spongepowered.api.command.CommandMessageFormatting
 import org.spongepowered.api.command.CommandResult
@@ -30,6 +33,7 @@ class KFunctionCallable(
     private val aliases = function.findAnnotation<Command>()?.aliases?.toList().orEmpty()
 
     private val permission: String? = function.findAnnotation<Permission>()?.value
+    private val description: Optional<Text> = function.findAnnotation<Description>()?.value?.unaryPlus().wrap()
 
     private val tokenizer: InputTokenizer = InputTokenizer.quotedStrings(false)
 
@@ -68,20 +72,47 @@ class KFunctionCallable(
         }
     }
 
-    override fun getSuggestions(
-        source: CommandSource,
-        arguments: String,
-        targetPosition: Location<World>?
-    ): MutableList<String> {
-        TODO("not implemented")
+    override fun getSuggestions(source: CommandSource, arguments: String, targetPos: Location<World>?): List<String> {
+        val args = CommandArgs(arguments, tokenizer.tokenize(arguments, true))
+        val completions = hashSetOf<String>()
+
+        for ((param, value) in parameters) {
+            val state = args.snapshot
+
+            try {
+                value.parser(source, args, param.annotations)
+
+                if (state == args.snapshot) {
+                    completions += value.completer(source, args, param.annotations)
+                    args.applySnapshot(state)
+                } else if (args.hasNext()) {
+                    completions.clear()
+                } else {
+                    args.applySnapshot(state)
+                    completions += value.completer(source, args, param.annotations)
+
+                    if (!param.isOptional) {
+                        break
+                    }
+
+                    args.applySnapshot(state)
+                }
+            } catch (ignored: ArgumentParseException) {
+                args.applySnapshot(state)
+                completions += value.completer(source, args, param.annotations)
+                break
+            }
+        }
+
+        return completions.toList()
     }
 
     override fun getShortDescription(source: CommandSource): Optional<Text> {
-        TODO("not implemented")
+        return description
     }
 
     override fun getHelp(source: CommandSource): Optional<Text> {
-        TODO("not implemented")
+        return description
     }
 
     override fun getUsage(source: CommandSource): Text {
