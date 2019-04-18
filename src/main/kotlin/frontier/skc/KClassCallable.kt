@@ -7,11 +7,7 @@ import frontier.skc.match.SKCMatcher
 import frontier.skc.util.annotatedFunctions
 import frontier.ske.java.util.wrap
 import frontier.ske.text.unaryPlus
-import org.spongepowered.api.command.CommandCallable
-import org.spongepowered.api.command.CommandNotFoundException
-import org.spongepowered.api.command.CommandResult
-import org.spongepowered.api.command.CommandSource
-import org.spongepowered.api.command.args.parsing.InputTokenizer
+import org.spongepowered.api.command.*
 import org.spongepowered.api.command.dispatcher.SimpleDispatcher
 import org.spongepowered.api.text.Text
 import org.spongepowered.api.world.Location
@@ -22,7 +18,11 @@ import kotlin.reflect.full.findAnnotation
 
 class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatcher) : CommandCallable {
 
-    val defaultExecutor: KFunctionCallable?
+    init {
+        require(clazz.objectInstance != null) { "Classes are not currently supported. Use objects." }
+    }
+
+    private val defaultExecutor: KFunctionCallable?
 
     init {
         val executors = clazz.annotatedFunctions<Executor>()
@@ -35,7 +35,6 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
     }
 
     private val dispatcher = SimpleDispatcher(SimpleDispatcher.FIRST_DISAMBIGUATOR)
-    private val tokenizer: InputTokenizer = InputTokenizer.quotedStrings(false)
 
     private val permission: String? = clazz.findAnnotation<Permission>()?.value
     private val description: Optional<Text> = clazz.findAnnotation<Description>()?.value?.unaryPlus().wrap()
@@ -45,7 +44,12 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
     }
 
     override fun process(src: CommandSource, arguments: String): CommandResult {
+        if (!testPermission(src)) {
+            throw CommandPermissionException()
+        }
+
         return try {
+            val subcommand = dispatcher
             dispatcher.process(src, arguments)
         } catch (e: CommandNotFoundException) {
             if (defaultExecutor == null) {
@@ -56,7 +60,15 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
     }
 
     override fun getSuggestions(src: CommandSource, arguments: String, target: Location<World>?): List<String> {
-        return emptyList()
+        val completions = hashSetOf<String>()
+
+        if (defaultExecutor != null) {
+            completions += defaultExecutor.getSuggestions(src, arguments, target)
+        }
+
+        completions += dispatcher.getSuggestions(src, arguments, target)
+
+        return completions.toList()
     }
 
     override fun getShortDescription(src: CommandSource): Optional<Text> {
@@ -68,6 +80,14 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
     }
 
     override fun getUsage(src: CommandSource): Text {
-        return defaultExecutor?.getUsage(src) ?: dispatcher.getUsage(src) ?: Text.EMPTY
+        val usage = dispatcher.getUsage(src)
+
+        if (defaultExecutor == null) return usage
+
+        val defaultUsage = defaultExecutor.getUsage(src)
+
+        if (defaultUsage.isEmpty) return usage
+
+        return Text.of(usage, CommandMessageFormatting.PIPE_TEXT, defaultUsage)
     }
 }

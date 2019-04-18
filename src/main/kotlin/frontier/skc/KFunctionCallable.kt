@@ -9,10 +9,7 @@ import frontier.ske.commandManager
 import frontier.ske.java.util.wrap
 import frontier.ske.text.text
 import frontier.ske.text.unaryPlus
-import org.spongepowered.api.command.CommandCallable
-import org.spongepowered.api.command.CommandMessageFormatting
-import org.spongepowered.api.command.CommandResult
-import org.spongepowered.api.command.CommandSource
+import org.spongepowered.api.command.*
 import org.spongepowered.api.command.args.ArgumentParseException
 import org.spongepowered.api.command.args.CommandArgs
 import org.spongepowered.api.command.args.parsing.InputTokenizer
@@ -73,6 +70,10 @@ class KFunctionCallable(
     }
 
     override fun getSuggestions(source: CommandSource, arguments: String, targetPos: Location<World>?): List<String> {
+        if (!testPermission(source)) {
+            throw CommandPermissionException()
+        }
+
         val args = CommandArgs(arguments, tokenizer.tokenize(arguments, true))
         val completions = hashSetOf<String>()
 
