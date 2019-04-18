@@ -5,8 +5,11 @@ import frontier.skc.annotation.Description
 import frontier.skc.annotation.Executor
 import frontier.skc.annotation.Permission
 import frontier.skc.match.SKCMatcher
+import frontier.skc.match.TypeMatch
 import frontier.skc.util.annotatedClasses
 import frontier.skc.util.annotatedFunctions
+import frontier.skc.value.ValueCompleters
+import frontier.skc.value.ValueUsages
 import frontier.ske.commandManager
 import frontier.ske.java.util.wrap
 import frontier.ske.text.unaryPlus
@@ -23,6 +26,12 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
 
     init {
         require(clazz.objectInstance != null) { "Classes are not currently supported. Use objects." }
+
+        matcher.parse(TypeMatch.onType(clazz)) { _, _, _ ->
+            clazz.objectInstance
+        }
+        matcher.complete(TypeMatch.onType(clazz), ValueCompleters.EMPTY)
+        matcher.usage(TypeMatch.onType(clazz), ValueUsages.EMPTY)
     }
 
     private val defaultExecutor: KFunctionCallable?
