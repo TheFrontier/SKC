@@ -3,9 +3,11 @@ package frontier.skc
 import frontier.skc.annotation.Command
 import frontier.skc.annotation.Description
 import frontier.skc.annotation.ExecutionTransformingAnnotation
+import frontier.skc.annotation.ParameterParseTransformingAnnotation
 import frontier.skc.annotation.Permission
 import frontier.skc.transform.ExecutionContext
 import frontier.skc.transform.ExecutionTransformer
+import frontier.skc.transform.ParameterParseTransformer
 import frontier.skc.util.displayName
 import frontier.skc.value.AnnotatedValueParameter
 import frontier.ske.commandManager
@@ -28,8 +30,24 @@ import kotlin.reflect.full.findAnnotation
 
 class KFunctionCallable(
     function: KFunction<*>,
-    private val parameters: List<Pair<KParameter, AnnotatedValueParameter>>
+    parameters: List<Pair<KParameter, AnnotatedValueParameter>>
 ) : CommandCallable {
+
+    private val parameters = parameters.map { param ->
+        param.copy(second = param.first.annotations
+            .filter { it::class.findAnnotation<ParameterParseTransformingAnnotation>() != null }
+            .foldRight(param.second) { annot, avp ->
+                @Suppress("UNCHECKED_CAST")
+                (annot::class.companionObjectInstance as? ParameterParseTransformer<Annotation>)
+                    ?.let {
+                        avp.copy(parser = { src, args, modifiers ->
+                            it.transformParameterParse(src, args, annot) {
+                                avp.parser(src, args, modifiers)
+                            }
+                        })
+                    } ?: avp
+            })
+    }
 
     private val aliases = function.findAnnotation<Command>()?.aliases?.toList().orEmpty()
 
@@ -59,7 +77,7 @@ class KFunctionCallable(
             try {
                 val parsed = value.parser(source, args, param.annotations)
                 callMap[param] = parsed
-            } catch (e: ArgumentParseException) {
+            } catch (e: CommandException) {
                 when {
                     param.isOptional -> args.applySnapshot(state)
                     param.type.isMarkedNullable -> {
@@ -159,7 +177,7 @@ class KFunctionCallable(
 
             override fun run(source: CommandSource, context: ExecutionContext): CommandResult {
                 @Suppress("UNCHECKED_CAST")
-                return (transformer as ExecutionTransformer<Annotation>).transform(source, context, annotation) {
+                return (transformer as ExecutionTransformer<Annotation>).transformExecution(source, context, annotation) {
                     next.run(source, context)
                 }
             }

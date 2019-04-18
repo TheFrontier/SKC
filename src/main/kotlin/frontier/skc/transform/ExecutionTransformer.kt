@@ -10,5 +10,5 @@ typealias ExecutionContext = MutableMap<KParameter, Any?>
 interface ExecutionTransformer<T : Annotation> {
 
     @Throws(CommandException::class)
-    fun transform(src: CommandSource, context: ExecutionContext, annotation: T, next: () -> CommandResult): CommandResult
+    fun transformExecution(src: CommandSource, context: ExecutionContext, annotation: T, next: () -> CommandResult): CommandResult
 }
