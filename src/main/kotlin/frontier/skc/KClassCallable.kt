@@ -5,7 +5,9 @@ import frontier.skc.annotation.Description
 import frontier.skc.annotation.Executor
 import frontier.skc.annotation.Permission
 import frontier.skc.match.SKCMatcher
+import frontier.skc.util.annotatedClasses
 import frontier.skc.util.annotatedFunctions
+import frontier.ske.commandManager
 import frontier.ske.java.util.wrap
 import frontier.ske.text.unaryPlus
 import org.spongepowered.api.command.*
@@ -38,12 +40,17 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
     private val dispatcher = SimpleDispatcher(SimpleDispatcher.FIRST_DISAMBIGUATOR)
 
     init {
-        for (func in clazz.annotatedFunctions<Command>()) {
-            val callable = KFunctionCallable(func, matcher.resolve(func))
+        for (child in clazz.annotatedFunctions<Command>()) {
+            val callable = KFunctionCallable(child, matcher.resolve(child))
             callable.register(dispatcher)
+        }
+
+        for (child in clazz.annotatedClasses<Command>()) {
+            val callable = KClassCallable(child, matcher)
         }
     }
 
+    private val aliases: List<String> = clazz.findAnnotation<Command>()?.aliases?.toList().orEmpty()
     private val permission: String? = clazz.findAnnotation<Permission>()?.value
     private val description: Optional<Text> = clazz.findAnnotation<Description>()?.value?.unaryPlus().wrap()
 
@@ -96,5 +103,13 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
         if (defaultUsage.isEmpty) return usage
 
         return Text.of(usage, CommandMessageFormatting.PIPE_TEXT, defaultUsage)
+    }
+
+    fun register(dispatcher: SimpleDispatcher) {
+        dispatcher.register(this, aliases)
+    }
+
+    fun register(plugin: Any) {
+        commandManager.register(plugin, this, aliases)
     }
 }

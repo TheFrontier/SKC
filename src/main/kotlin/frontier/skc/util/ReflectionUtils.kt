@@ -9,6 +9,9 @@ import kotlin.reflect.full.*
 inline fun <reified A : Annotation> KClass<*>.annotatedFunctions(): List<KFunction<*>> =
     this.functions.filter { func -> func.annotations.any { it is A } }
 
+inline fun <reified A : Annotation> KClass<*>.annotatedClasses(): List<KClass<*>> =
+    this.nestedClasses.filter { clazz -> clazz.annotations.any { it is A } }
+
 inline fun <reified T : Any> KClass<*>.isSubclassOf() = this.isSubclassOf(T::class)
 
 inline fun <reified T : Any> KClass<*>.isSuperclassOf() = this.isSuperclassOf(T::class)
