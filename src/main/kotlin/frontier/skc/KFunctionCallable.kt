@@ -2,7 +2,10 @@ package frontier.skc
 
 import frontier.skc.annotation.Command
 import frontier.skc.annotation.Description
+import frontier.skc.annotation.ExecutionTransformerAnnotation
 import frontier.skc.annotation.Permission
+import frontier.skc.transform.ExecutionContext
+import frontier.skc.transform.ExecutionTransformer
 import frontier.skc.util.displayName
 import frontier.skc.value.AnnotatedValueParameter
 import frontier.ske.commandManager
@@ -20,10 +23,11 @@ import org.spongepowered.api.world.World
 import java.util.*
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
+import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.findAnnotation
 
 class KFunctionCallable(
-    private val function: KFunction<*>,
+    function: KFunction<*>,
     private val parameters: List<Pair<KParameter, AnnotatedValueParameter>>
 ) : CommandCallable {
 
@@ -33,6 +37,13 @@ class KFunctionCallable(
     private val description: Optional<Text> = function.findAnnotation<Description>()?.value?.unaryPlus().wrap()
 
     private val tokenizer: InputTokenizer = InputTokenizer.quotedStrings(false)
+
+    private val executor: Executor = function.annotations
+        .filter { it::class.findAnnotation<ExecutionTransformerAnnotation>() != null }
+        .foldRight<Annotation, Executor>(Executor.Function(function)) { annot, exec ->
+            (annot::class.companionObjectInstance as? ExecutionTransformer<*>)
+                ?.let { Executor.Transformer(annot, it, exec) } ?: exec }
+
 
     override fun testPermission(source: CommandSource): Boolean {
         return permission == null || source.hasPermission(permission)
@@ -60,13 +71,7 @@ class KFunctionCallable(
             }
         }
 
-        val result = function.callBy(callMap)
-
-        return if (result is CommandResult) {
-            result
-        } else {
-            CommandResult.success()
-        }
+        return executor.run(source, callMap)
     }
 
     override fun getSuggestions(source: CommandSource, arguments: String, targetPos: Location<World>?): List<String> {
@@ -140,5 +145,24 @@ class KFunctionCallable(
 
     fun register(plugin: Any) {
         commandManager.register(plugin, this, aliases)
+    }
+
+    private sealed class Executor {
+        abstract fun run(source: CommandSource, context: ExecutionContext): CommandResult
+        class Function(val function: KFunction<*>): Executor() {
+            override fun run(source: CommandSource, context: ExecutionContext): CommandResult {
+                return function.callBy(context) as? CommandResult ?: CommandResult.success()
+            }
+        }
+        class Transformer(val annotation: Annotation, val transformer: ExecutionTransformer<*>, val next: Executor)
+            : Executor() {
+
+            override fun run(source: CommandSource, context: ExecutionContext): CommandResult {
+                @Suppress("UNCHECKED_CAST")
+                return (transformer as ExecutionTransformer<Annotation>).transform(source, context, annotation) {
+                    next.run(source, context)
+                }
+            }
+        }
     }
 }
