@@ -56,6 +56,7 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
 
         for (child in clazz.annotatedClasses<Command>()) {
             val callable = KClassCallable(child, matcher)
+            callable.register(dispatcher)
         }
     }
 
