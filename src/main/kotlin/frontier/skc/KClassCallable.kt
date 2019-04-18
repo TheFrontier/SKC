@@ -1,5 +1,6 @@
 package frontier.skc
 
+import frontier.skc.annotation.Command
 import frontier.skc.annotation.Description
 import frontier.skc.annotation.Executor
 import frontier.skc.annotation.Permission
@@ -16,7 +17,7 @@ import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 
-class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatcher) : CommandCallable {
+class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : CommandCallable {
 
     init {
         require(clazz.objectInstance != null) { "Classes are not currently supported. Use objects." }
@@ -36,6 +37,13 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
 
     private val dispatcher = SimpleDispatcher(SimpleDispatcher.FIRST_DISAMBIGUATOR)
 
+    init {
+        for (func in clazz.annotatedFunctions<Command>()) {
+            val callable = KFunctionCallable(func, matcher.resolve(func))
+            callable.register(dispatcher)
+        }
+    }
+
     private val permission: String? = clazz.findAnnotation<Permission>()?.value
     private val description: Optional<Text> = clazz.findAnnotation<Description>()?.value?.unaryPlus().wrap()
 
@@ -49,7 +57,6 @@ class KClassCallable(private val clazz: KClass<*>, private val matcher: SKCMatch
         }
 
         return try {
-            val subcommand = dispatcher
             dispatcher.process(src, arguments)
         } catch (e: CommandNotFoundException) {
             if (defaultExecutor == null) {
