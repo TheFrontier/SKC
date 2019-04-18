@@ -2,7 +2,7 @@ package frontier.skc
 
 import frontier.skc.annotation.Command
 import frontier.skc.annotation.Description
-import frontier.skc.annotation.ExecutionTransformerAnnotation
+import frontier.skc.annotation.ExecutionTransformingAnnotation
 import frontier.skc.annotation.Permission
 import frontier.skc.transform.ExecutionContext
 import frontier.skc.transform.ExecutionTransformer
@@ -39,7 +39,7 @@ class KFunctionCallable(
     private val tokenizer: InputTokenizer = InputTokenizer.quotedStrings(false)
 
     private val executor: Executor = function.annotations
-        .filter { it::class.findAnnotation<ExecutionTransformerAnnotation>() != null }
+        .filter { it::class.findAnnotation<ExecutionTransformingAnnotation>() != null }
         .foldRight<Annotation, Executor>(Executor.Function(function)) { annot, exec ->
             (annot::class.companionObjectInstance as? ExecutionTransformer<*>)
                 ?.let { Executor.Transformer(annot, it, exec) } ?: exec }

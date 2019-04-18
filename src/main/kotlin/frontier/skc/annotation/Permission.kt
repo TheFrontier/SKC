@@ -6,7 +6,7 @@ import org.spongepowered.api.command.CommandPermissionException
 import org.spongepowered.api.command.CommandResult
 import org.spongepowered.api.command.CommandSource
 
-@ExecutionTransformerAnnotation
+@ExecutionTransformingAnnotation
 @Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS, AnnotationTarget.VALUE_PARAMETER)
 annotation class Permission(val value: String) {
     companion object : ExecutionTransformer<Permission> {
