@@ -2,7 +2,12 @@ package frontier.skc
 
 import frontier.skc.annotation.Command
 import frontier.skc.annotation.Description
+import frontier.skc.annotation.ExecutionTransformingAnnotation
+import frontier.skc.annotation.ParameterParseTransformingAnnotation
 import frontier.skc.annotation.Permission
+import frontier.skc.transform.ExecutionContext
+import frontier.skc.transform.ExecutionTransformer
+import frontier.skc.transform.ParameterParseTransformer
 import frontier.skc.util.displayName
 import frontier.skc.value.AnnotatedValueParameter
 import frontier.ske.commandManager
@@ -20,12 +25,29 @@ import org.spongepowered.api.world.World
 import java.util.*
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
+import kotlin.reflect.full.companionObjectInstance
 import kotlin.reflect.full.findAnnotation
 
 class KFunctionCallable(
-    private val function: KFunction<*>,
-    private val parameters: List<Pair<KParameter, AnnotatedValueParameter>>
+    function: KFunction<*>,
+    parameters: List<Pair<KParameter, AnnotatedValueParameter>>
 ) : CommandCallable {
+
+    private val parameters = parameters.map { param ->
+        param.copy(second = param.first.annotations
+            .filter { it::class.findAnnotation<ParameterParseTransformingAnnotation>() != null }
+            .foldRight(param.second) { annot, avp ->
+                @Suppress("UNCHECKED_CAST")
+                (annot::class.companionObjectInstance as? ParameterParseTransformer<Annotation>)
+                    ?.let {
+                        avp.copy(parser = { src, args, modifiers ->
+                            it.transformParameterParse(src, args, annot) {
+                                avp.parser(src, args, modifiers)
+                            }
+                        })
+                    } ?: avp
+            })
+    }
 
     private val aliases = function.findAnnotation<Command>()?.aliases?.toList().orEmpty()
 
@@ -33,6 +55,13 @@ class KFunctionCallable(
     private val description: Optional<Text> = function.findAnnotation<Description>()?.value?.unaryPlus().wrap()
 
     private val tokenizer: InputTokenizer = InputTokenizer.quotedStrings(false)
+
+    private val executor: Executor = function.annotations
+        .filter { it::class.findAnnotation<ExecutionTransformingAnnotation>() != null }
+        .foldRight<Annotation, Executor>(Executor.Function(function)) { annot, exec ->
+            (annot::class.companionObjectInstance as? ExecutionTransformer<*>)
+                ?.let { Executor.Transformer(annot, it, exec) } ?: exec }
+
 
     override fun testPermission(source: CommandSource): Boolean {
         return permission == null || source.hasPermission(permission)
@@ -48,7 +77,7 @@ class KFunctionCallable(
             try {
                 val parsed = value.parser(source, args, param.annotations)
                 callMap[param] = parsed
-            } catch (e: ArgumentParseException) {
+            } catch (e: CommandException) {
                 when {
                     param.isOptional -> args.applySnapshot(state)
                     param.type.isMarkedNullable -> {
@@ -60,13 +89,7 @@ class KFunctionCallable(
             }
         }
 
-        val result = function.callBy(callMap)
-
-        return if (result is CommandResult) {
-            result
-        } else {
-            CommandResult.success()
-        }
+        return executor.run(source, callMap)
     }
 
     override fun getSuggestions(source: CommandSource, arguments: String, targetPos: Location<World>?): List<String> {
@@ -140,5 +163,24 @@ class KFunctionCallable(
 
     fun register(plugin: Any) {
         commandManager.register(plugin, this, aliases)
+    }
+
+    private sealed class Executor {
+        abstract fun run(source: CommandSource, context: ExecutionContext): CommandResult
+        class Function(val function: KFunction<*>): Executor() {
+            override fun run(source: CommandSource, context: ExecutionContext): CommandResult {
+                return function.callBy(context) as? CommandResult ?: CommandResult.success()
+            }
+        }
+        class Transformer(val annotation: Annotation, val transformer: ExecutionTransformer<*>, val next: Executor)
+            : Executor() {
+
+            override fun run(source: CommandSource, context: ExecutionContext): CommandResult {
+                @Suppress("UNCHECKED_CAST")
+                return (transformer as ExecutionTransformer<Annotation>).transformExecution(source, context, annotation) {
+                    next.run(source, context)
+                }
+            }
+        }
     }
 }
