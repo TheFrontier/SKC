@@ -1,4 +1,4 @@
 package frontier.skc.annotation
 
 @Target(AnnotationTarget.ANNOTATION_CLASS)
-annotation class ParameterParseTransformingAnnotation
+annotation class ParserTransformingAnnotation
