@@ -1,3 +1,5 @@
+[![Release](https://jitpack.io/v/TheFrontier/SKC.svg)](https://jitpack.io/#TheFrontier/SKC)
+
 # Sponge Kotlin annotation Commands
 
 A Kotlin-based annotation command system for the Sponge platform.
