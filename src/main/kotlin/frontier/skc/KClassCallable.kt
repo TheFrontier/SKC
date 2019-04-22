@@ -12,6 +12,7 @@ import frontier.skc.value.ValueCompleters
 import frontier.skc.value.ValueUsages
 import frontier.ske.commandManager
 import frontier.ske.java.util.wrap
+import frontier.ske.text.not
 import frontier.ske.text.unaryPlus
 import org.spongepowered.api.command.*
 import org.spongepowered.api.command.dispatcher.SimpleDispatcher
@@ -83,6 +84,14 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
             dispatcher.process(src, arguments)
         } catch (e: CommandNotFoundException) {
             if (defaultExecutor == null) {
+                throw e
+            }
+            defaultExecutor.process(src, arguments)
+        } catch (e: CommandException) {
+            if (defaultExecutor == null) {
+                if (e.message?.split(':')?.getOrNull(1).isNullOrBlank()) {
+                    throw CommandException(!"Not a valid subcommand.", true)
+                }
                 throw e
             }
             defaultExecutor.process(src, arguments)
