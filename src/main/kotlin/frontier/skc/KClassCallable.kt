@@ -24,6 +24,10 @@ import kotlin.reflect.full.findAnnotation
 
 class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : CommandCallable {
 
+    companion object {
+        inline operator fun <reified T : Any> invoke(matcher: SKCMatcher) = KClassCallable(T::class, matcher)
+    }
+
     init {
         require(clazz.objectInstance != null) { "Classes are not currently supported. Use objects." }
 
