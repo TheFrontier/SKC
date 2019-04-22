@@ -84,13 +84,15 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
             dispatcher.process(src, arguments)
         } catch (e: CommandNotFoundException) {
             if (defaultExecutor == null) {
-                throw e
+                throw CommandException(!"Not a valid subcommand: ${e.command}.", true)
             }
             defaultExecutor.process(src, arguments)
         } catch (e: CommandException) {
             if (defaultExecutor == null) {
-                if (e.message?.split(':')?.getOrNull(1).isNullOrBlank()) {
-                    throw CommandException(!"Not a valid subcommand.", true)
+                val message = e.message ?: throw e
+                if (message.startsWith("No such child command: ")) {
+                    val command = message.substring(23)
+                    throw CommandException(!"Not a valid subcommand: $command", true)
                 }
                 throw e
             }
