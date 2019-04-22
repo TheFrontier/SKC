@@ -55,13 +55,11 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
 
     init {
         for (child in clazz.annotatedFunctions<Command>()) {
-            println("${clazz.simpleName} has child command ${child.name}")
             val callable = KFunctionCallable(child, matcher.resolve(child))
             callable.register(dispatcher)
         }
 
         for (child in clazz.annotatedClasses<Command>()) {
-            println("${clazz.simpleName} has child command ${child.simpleName}")
             val callable = KClassCallable(child, matcher)
             callable.register(dispatcher)
         }
@@ -84,7 +82,7 @@ class KClassCallable(clazz: KClass<*>, private val matcher: SKCMatcher) : Comman
             dispatcher.process(src, arguments)
         } catch (e: CommandNotFoundException) {
             if (defaultExecutor == null) {
-                throw CommandException(!"Not a valid subcommand: ${e.command}.", true)
+                throw CommandException(!"Not a valid subcommand: ${e.command}", true)
             }
             defaultExecutor.process(src, arguments)
         } catch (e: CommandException) {
