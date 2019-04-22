@@ -6,6 +6,8 @@ import org.spongepowered.api.text.Text
 
 typealias AnnotatedValueParser = (src: CommandSource, args: CommandArgs, modifiers: List<Annotation>) -> Any?
 
+typealias TypedAnnotatedValueParser<T> = (src: CommandSource, args: CommandArgs, modifiers: List<Annotation>) -> T
+
 typealias AnnotatedValueCompleter = (src: CommandSource, args: CommandArgs, modifiers: List<Annotation>) -> List<String>
 
 typealias AnnotatedValueUsage = (src: CommandSource, key: Text) -> Text

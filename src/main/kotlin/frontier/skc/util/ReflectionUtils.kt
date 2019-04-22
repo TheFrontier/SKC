@@ -19,6 +19,8 @@ inline fun <reified T : Any> KClass<*>.isSuperclassOf() = this.isSuperclassOf(T:
 inline fun <reified T : Annotation> List<Annotation>.findAnnotation(): T? =
     this.firstOrNull { it is T } as T?
 
+fun List<Annotation>.display(): String = this.mapNotNull { it.annotationClass.simpleName }.joinToString()
+
 inline fun <reified T : Any> KType.isSubtypeOf() =
     this.isSubtypeOf(T::class.createType())
 
